@@ -123,7 +123,7 @@ class HTTP(HTTP_METHOD, HTTP_USER_AGENT):
             return data
         except IOError, e:
             data = {
-                "error": true,
+                "error": True,
                 "exception": e
             }
 
