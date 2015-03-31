@@ -1,4 +1,4 @@
-import urllib, urllib2, cookielib
+import urllib, urllib2, cookielib, time
 
 from http_method import HTTP_METHOD
 from http_user_agent import HTTP_USER_AGENT
@@ -22,7 +22,7 @@ TODO:
 - enable basic http authentication
 '''
 class HTTP(HTTP_METHOD, HTTP_USER_AGENT):
-    ALLOWED_KEYS = "url,headers,method,data".split(",")
+    ALLOWED_KEYS = "url,headers,method,data,body".split(",")
 
     '''
     Accepted parameters:
@@ -30,6 +30,7 @@ class HTTP(HTTP_METHOD, HTTP_USER_AGENT):
         headers - Object - Key-Value object with the headers to send with the request
         method - String - The Http method to simulate
         data - Object - Key-Value object with the data to send to the request
+        body - String - The request body
     Generally on POST or PUT requests you will provide the "data" field.
     If not provided the data will be taken as an empty list {}.
     "headers" can be something like { "Content-Type": "application/json" }
@@ -88,9 +89,15 @@ class HTTP(HTTP_METHOD, HTTP_USER_AGENT):
     Internal Method which actually makes the request
     '''
     def _run(self):
+        time_start = time.time()
+
         try:
             # initialize the request object with the url, data and headers
-            request = urllib2.Request(self.url, urllib.urlencode(self.data), self.headers)
+            if self.body is not None:
+                requestBody = self.body
+            else:
+                requestBody = urllib.urlencode(self.data)
+            request = urllib2.Request(self.url, requestBody, self.headers)
 
             # set the request method
             request.get_method = lambda: self.method
@@ -100,6 +107,8 @@ class HTTP(HTTP_METHOD, HTTP_USER_AGENT):
 
             # perform the request
             response = urllib2.urlopen(request)
+
+            time_end = time.time()
 
             # get the headers as an key/value representation
             dataHeaders = {}
@@ -117,15 +126,22 @@ class HTTP(HTTP_METHOD, HTTP_USER_AGENT):
                 "code": response.code,
                 "headers": dataHeaders,
                 "body": response.read(),
-                "cookies": dataCookies
+                "cookies": dataCookies,
+                "duration": time_end - time_start
             }
 
             return data
-        except IOError, e:
+        except Exception, e:
             data = {
                 "error": True,
-                "exception": e
+                "exception": e,
+                "duration": time.time() - time_start
             }
+
+            if "code" in e:
+                data["code"] = e.code
+            else:
+                data["code"] = "NULL"
 
             return data
 
