@@ -131,7 +131,20 @@ class HTTP(HTTP_METHOD, HTTP_USER_AGENT):
             }
 
             return data
-        except Exception, e:
+        except urllib2.HTTPError as e:
+            data = {
+                "error": True,
+                "exception": e,
+                "duration": time.time() - time_start
+            }
+
+            if hasattr(e, "code"):
+                data["code"] = e.code
+            else:
+                data["code"] = "NULL"
+
+            return data
+        except Exception as e:
             data = {
                 "error": True,
                 "exception": e,
